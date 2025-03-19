@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moisture and Piperine Prediction for Pepper</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(to right, #ffecd2, #fcb69f);
+            color: #333;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-label {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .drop-zone.dragover {
+            border-color: #ff7e5f;
+            background-color: #ffecd2;
+        }
+        .drop-zone span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+        button {
+            background: #ff7e5f;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #ff6b4a;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Moisture and Piperine Prediction for Pepper</h1>
+    <form id="upload-form">
+        <div class="drop-zone" id="hdr-drop-zone">
+            <span class="file-label" id="hdr-label">Drag and drop .hdr file here or click to select file</span>
+            <input type="file" id="hdrFile" accept=".hdr" required>
+        </div>
+        <div class="drop-zone" id="img-drop-zone">
+            <span class="file-label" id="img-label">Drag and drop .img file here or click to select file</span>
+            <input type="file" id="imgFile" accept=".img" required>
+        </div>
+        <button type="submit">Predict Moisture and Piperine</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        const hdrDropZone = document.getElementById('hdr-drop-zone');
+        const imgDropZone = document.getElementById('img-drop-zone');
+        const hdrFileInput = document.getElementById('hdrFile');
+        const imgFileInput = document.getElementById('imgFile');
+        const hdrLabel = document.getElementById('hdr-label');
+        const imgLabel = document.getElementById('img-label');
+
+        hdrDropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            hdrDropZone.classList.add('dragover');
+        });
+
+        hdrDropZone.addEventListener('dragleave', () => {
+            hdrDropZone.classList.remove('dragover');
+        });
+
+        hdrDropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            hdrDropZone.classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length === 1 && files[0].name.endsWith('.hdr')) {
+                hdrFileInput.files = new DataTransfer().items.add(files[0]).files;
+                hdrLabel.textContent = files[0].name;
+            } else {
+                alert("Please drop a .hdr file");
+            }
+        });
+
+        imgDropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            imgDropZone.classList.add('dragover');
+        });
+
+        imgDropZone.addEventListener('dragleave', () => {
+            imgDropZone.classList.remove('dragover');
+        });
+
+        imgDropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            imgDropZone.classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length === 1 && files[0].name.endsWith('.img')) {
+                imgFileInput.files = new DataTransfer().items.add(files[0]).files;
+                imgLabel.textContent = files[0].name;
+            } else {
+                alert("Please drop a .img file");
+            }
+        });
+
+        hdrDropZone.addEventListener('click', () => {
+            hdrFileInput.click();
+        });
+
+        imgDropZone.addEventListener('click', () => {
+            imgFileInput.click();
+        });
+
+        hdrFileInput.addEventListener('change', () => {
+            if (hdrFileInput.files.length > 0) {
+                hdrLabel.textContent = hdrFileInput.files[0].name;
+            }
+        });
+
+        imgFileInput.addEventListener('change', () => {
+            if (imgFileInput.files.length > 0) {
+                imgLabel.textContent = imgFileInput.files[0].name;
+            }
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            const hdrFile = hdrFileInput.files[0];
+            const imgFile = imgFileInput.files[0];
+            if (!hdrFile || !imgFile) {
+                alert("Please upload both .hdr and .img files");
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append("hdr", hdrFile);
+            formData.append("img", imgFile);
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                console.log("Response Data:", data);
+                document.getElementById('result').innerText = `Predicted Moisture Content: ${data.moisture_prediction}\nPredicted Piperine Content: ${data.peperine_prediction}`;
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('result').innerText = "Error processing the request";
+            }
+        });
+    </script>
+</body>
+</html>
