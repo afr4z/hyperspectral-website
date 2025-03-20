@@ -5,10 +5,16 @@ const path = require('path');
 const cors = require('cors');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
+const fs = require('fs');
+const https = require('https');
 
 const app = express();
 app.use(cors());
 
+const options = {
+	key: fs.readFileSync('./ssl/key.pem'),
+	cert: fs.readFileSync('./ssl/cert.pem')
+};
 // Multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -23,6 +29,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+app.get('/', (req, res) => {
+	console.log(req.body);
+    res.send('GET request received at /');
+});
 // API to predict moisture
 app.post('/api/predict', upload.fields([{ name: 'img' }, { name: 'hdr' }]), (req, res) => {
     if (!req.files || !req.files.img || !req.files.hdr) {
@@ -50,6 +60,6 @@ app.post('/api/predict', upload.fields([{ name: 'img' }, { name: 'hdr' }]), (req
     });
 });
 
-// Start server
-app.listen(5000, () => console.log("Server running on http://127.0.0.1:5000"));
-
+https.createServer(options, app).listen(5000, '0.0.0.0', () => {
+    console.log("HTTPS Server running on https://0.0.0.0:5000");
+});
